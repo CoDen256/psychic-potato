@@ -89,7 +89,7 @@ def run_async_with_pool_and_measure(n_threads):
     measure_time(lambda: run_async_with_pool(n_threads), f"async & pool {n_threads}")
 
 if __name__ == "__main__":
-    run_sync_and_measure()
+    run_sync_and_measure() # sync : 1129.7238166332245
 
     run_async_and_measure(20) # 
     run_async_and_measure(50) # 

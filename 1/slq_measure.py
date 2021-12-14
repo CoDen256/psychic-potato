@@ -6,9 +6,8 @@ import time
 
 CONFIG = {
   'user': 'client',
-  'password': 'poiu',
+  'password': '<password>',
   'host': '127.0.0.1',
-  'port': '6603',
   'database': 'db',
 }
 
@@ -29,9 +28,7 @@ def drop_table(conn):
 
 def insert(conn, cursor, i):
     try:
-        time.sleep(1)
         cursor.execute(SQL, (i, f"Post {i}"))
-        # print(f"Executed {i}")
         conn.commit()
     except Exception as e:
         print(e)
@@ -91,25 +88,12 @@ def run_async_with_pool_and_measure(n_threads):
     measure_time(lambda: run_async_with_pool(n_threads), f"async & pool {n_threads}")
 
 if __name__ == "__main__":
-    # run_sync_and_measure() 
+    run_sync_and_measure() # sync : 1129.7238166332245
 
-    # run_async_and_measure(20) # 
-    # run_async_and_measure(50) # 
-    # run_async_and_measure(100) #
-
-
-    run_async_with_pool_and_measure(20) # 
-    run_async_with_pool_and_measure(32) #
+    run_async_and_measure(20) # async 20 : 1405.968431711197
+    run_async_and_measure(50) # async 50 : 1377.8299469947815
+    run_async_and_measure(100) # async 100 : 1366.4317593574524
 
 
-# async 20 : 821.3850049972534
-# async 50 : 814.341564655304
-# async 100 : 946.5336458683014      
-# sync : 484.79401683807373
-# async & pool 20 : 606.6413397789001
-
-
-# sync : 1129.7238166332245
-# async 20 : 1405.968431711197
-# async 50 : 1377.8299469947815
-# async 100 : 1366.4317593574524
+    run_async_with_pool_and_measure(20) # async & pool 20 : 1317.2488374710083
+    run_async_with_pool_and_measure(32) # async & pool 32 : 1294.6909358501434

@@ -29,7 +29,9 @@ def drop_table(conn):
 
 def insert(conn, cursor, i):
     try:
+        time.sleep(1)
         cursor.execute(SQL, (i, f"Post {i}"))
+        # print(f"Executed {i}")
         conn.commit()
     except Exception as e:
         print(e)
@@ -72,13 +74,13 @@ def run_async(n_threads):
 
 # ASYNC WITH CONNECTION POOL
 def run_async_with_pool(n_threads):
-    pool = pooling.MySQLConnectionPool(pool_size = min(n_threads, 32),**CONFIG)
+    pool = pooling.MySQLConnectionPool(pool_size = n_threads,**CONFIG)
     with ThreadPoolExecutor(max_workers=n_threads) as executor:
         for i in range(0, TOTAL, n_threads):
             futures = []  
             for j in range(i, i+n_threads):
                 conn = pool.get_connection()
-                executor.submit(insert_and_close, conn, j)
+                futures.append(executor.submit(insert_and_close, conn, j))
             wait(futures)
 
 def run_async_with_pool_and_measure(n_threads):
@@ -89,14 +91,14 @@ def run_async_with_pool_and_measure(n_threads):
     measure_time(lambda: run_async_with_pool(n_threads), f"async & pool {n_threads}")
 
 if __name__ == "__main__":
-    run_sync_and_measure() # sync : 1129.7238166332245
+    # run_sync_and_measure() 
 
-    run_async_and_measure(20) # 
-    run_async_and_measure(50) # 
-    run_async_and_measure(100) #
+    # run_async_and_measure(20) # 
+    # run_async_and_measure(50) # 
+    # run_async_and_measure(100) #
 
 
-    run_async_with_pool_and_measure(20) # 186.4451675415039
+    run_async_with_pool_and_measure(20) # 
     run_async_with_pool_and_measure(32) #
 
 
@@ -105,3 +107,9 @@ if __name__ == "__main__":
 # async 100 : 946.5336458683014      
 # sync : 484.79401683807373
 # async & pool 20 : 606.6413397789001
+
+
+# sync : 1129.7238166332245
+# async 20 : 1405.968431711197
+# async 50 : 1377.8299469947815
+# async 100 : 1366.4317593574524

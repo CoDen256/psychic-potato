@@ -1,0 +1,59 @@
+CREATE KEYSPACE shop WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1 };
+
+USE shop;
+CREATE TABLE items ( name text, category text, producer text, price int, info map<text, text>, id uuid, PRIMARY KEY(id, category)) ;
+DESCRIBE items;
+
+INSERT INTO items(name, category, producer, price, id)  VALUES ('Mi Band 3','Smartwatch', 'XiaoMi', 20, uuid());
+INSERT INTO items(name, category, producer, price, id)  VALUES ('Body Scale 2','Smartweight', 'XiaoMi', 200, uuid()) ;
+INSERT INTO items(name, category, producer, price, id)  VALUES ('Uehk737 Light','Laptop', 'Samsung', 1000, uuid()) ;
+
+INSERT INTO items(name, category, producer, price, id, info) VALUES ('Asus VivoBook','Laptop', 'Asus', 2000, uuid(), {'description' :'Just a normal Laptop'});
+INSERT INTO items(name, category, producer, price, id, info) VALUES ('Galaxy A52','Phone', 'Samsung', 600, uuid(), {'cameras':'3'});
+INSERT INTO items(name, category, producer, price, id, info) VALUES ('iPhone 6', 'Phone', 'Apple', 200, uuid(),  {'cameras':'2'}) ;
+INSERT INTO items(name, category, producer, price, id, info) VALUES ('iPhone 11', 'Phone', 'Apple', 600, uuid(),  {'cameras':'2', 'description' :'WOW'}) ;
+
+SELECT * FROM items;
+
+
+
+CREATE TABLE items ( name text, category text, producer text, price int, info map<text, text>, id int, PRIMARY KEY(id, category)) ;
+INSERT INTO items(name, category, producer, price, id)  VALUES ('Mi Band 3','Smartwatch', 'XiaoMi', 20, 1);
+INSERT INTO items(name, category, producer, price, id)  VALUES ('Body Scale 2','Smartweight', 'XiaoMi', 200, 1) ;
+INSERT INTO items(name, category, producer, price, id)  VALUES ('Uehk737 Light','Laptop', 'Samsung', 1000, 1) ;
+
+INSERT INTO items(name, category, producer, price, id, info) VALUES ('Asus VivoBook','Laptop', 'Asus', 2000, 1, {'description' :'Just a normal Laptop'});
+INSERT INTO items(name, category, producer, price, id, info) VALUES ('Galaxy A52','Phone', 'Samsung', 600, 1, {'cameras':'3'});
+INSERT INTO items(name, category, producer, price, id, info) VALUES ('iPhone 6', 'Phone', 'Apple', 200, 1,  {'cameras':'2'}) ;
+INSERT INTO items(name, category, producer, price, id, info) VALUES ('iPhone 11', 'Phone', 'Apple', 600, 1,  {'cameras':'2', 'description' :'WOW'}) ;
+
+-------------
+CREATE TABLE items ( name text, category text, producer text, price int, info map<text, text>, id uuid, PRIMARY KEY(category, price, producer, name, id)) ;
+
+INSERT INTO items(name, category, producer, price, id)  VALUES ('Mi Band 3','Smartwatch', 'XiaoMi', 20, uuid());
+INSERT INTO items(name, category, producer, price, id)  VALUES ('Body Scale 2','Smartweight', 'XiaoMi', 200, uuid()) ;
+INSERT INTO items(name, category, producer, price, id)  VALUES ('Uehk737 Light','Laptop', 'Samsung', 1000, uuid()) ;
+
+INSERT INTO items(name, category, producer, price, id, info) VALUES ('Asus VivoBook','Laptop', 'Asus', 2000, uuid(), {'description' :'Just a normal Laptop'});
+INSERT INTO items(name, category, producer, price, id, info) VALUES ('Galaxy A52','Phone', 'Samsung', 600, uuid(), {'cameras':'3'});
+INSERT INTO items(name, category, producer, price, id, info) VALUES ('iPhone 6', 'Phone', 'Apple', 200, uuid(),  {'cameras':'2'}) ;
+INSERT INTO items(name, category, producer, price, id, info) VALUES ('iPhone 11', 'Phone', 'Apple', 600, uuid(),  {'cameras':'2', 'description' :'WOW'}) ;
+
+
+SELECT * FROM items where category = 'Phone' ORDER BY price;
+
+SELECT * FROM items where category = 'Phone' AND price > 200 AND price <= 700;
+SELECT * FROM items where category = 'Phone' AND price = 600 AND producer = 'Apple';
+SELECT * FROM items where category = 'Phone' AND price = 600 AND producer = 'Apple' and name = 'iPhone 11';
+
+CREATE INDEX IF NOT EXISTS info_idx ON items (ENTRIES(info));
+CREATE INDEX IF NOT EXISTS info_idx2 ON items (KEYS(info));
+
+SELECT * FROM items WHERE info['cameras'] = '2';
+SELECT * FROM items WHERE info CONTAINS KEY 'cameras';
+
+UPDATE items SET info['cameras' ] = '25' WHERE category = 'Phone' AND price = 600 AND producer = 'Apple' AND name = 'iPhone 11' AND id = 45ef2321-e67b-45ba-9739-508e56569640;
+
+UPDATE items SET info = info+{'review':'10/10'} WHERE category = 'Phone' AND price = 600 AND producer = 'Apple' AND name = 'iPhone 11' AND id = 45ef2321-e67b-45ba-9739-508e56569640;
+
+DELETE info['description'] FROM items where category = 'Laptop' AND price =2000 AND producer = 'Asus' AND name = 'Asus VivoBook' AND id = 38795c95-dc14-4e5f-a540-57a496cca9a8;

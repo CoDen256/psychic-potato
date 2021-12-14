@@ -1,6 +1,6 @@
 from pymongo import MongoClient
+from pymongo.write_concern import WriteConcern
 import time
-from pprint import pprint
 
 def measure_time(func):
     start = time.time()
@@ -9,17 +9,16 @@ def measure_time(func):
     print(end - start)
 
 def insert_entries(collection):
-    for i in range(10):
-        sql = "INSERT INTO posts (id, text) VALUES (%s, %s)"
-        collection.runSQLQuery(sql, (i, f"Post {i}"))
+    for i in range(100_000):
+        collection.with_options(write_concern = WriteConcern(w=1, j=True)) \
+                .insert_one({"id":i, "text": f"Post {i}"} )
 
 if __name__ == "__main__":
     client = MongoClient(host= '0.0.0.0' ,port=27017)
 
-    # session.execute("CREATE KEYSPACE IF NOT EXISTS ks WITH REPLICATION = {'class':'SimpleStrategy', 'replication_factor':1}")
-    # session.execute("CREATE TABLE IF NOT EXISTS ks.posts (id int PRIMARY KEY, text text);")
+    db = client.mydb
+    posts = db.posts
 
-    # session.execute("USE ks")
-    # session.execute("TRUNCATE posts")
+    posts.delete_many({})
 
-    # measure_time(lambda: insert_entries(collection)) # 154.49652361869812
+    measure_time(lambda: insert_entries(posts)) # 389.6377100944519

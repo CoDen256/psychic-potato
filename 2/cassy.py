@@ -3,8 +3,6 @@ from cassandra.cluster import Cluster
 from cassandra import ConsistencyLevel
 from cassandra.query import SimpleStatement
 
-# docker run --name=cassy -p9042:9042 cassandra
-
 def measure_time(func):
     start = time.time()
     func()

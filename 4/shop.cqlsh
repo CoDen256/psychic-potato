@@ -57,3 +57,36 @@ UPDATE items SET info['cameras' ] = '25' WHERE category = 'Phone' AND price = 60
 UPDATE items SET info = info+{'review':'10/10'} WHERE category = 'Phone' AND price = 600 AND producer = 'Apple' AND name = 'iPhone 11' AND id = 45ef2321-e67b-45ba-9739-508e56569640;
 
 DELETE info['description'] FROM items where category = 'Laptop' AND price =2000 AND producer = 'Asus' AND name = 'Asus VivoBook' AND id = 38795c95-dc14-4e5f-a540-57a496cca9a8;
+
+
+CREATE TABLE orders (name text, items_id list<uuid>, sum int, date date, uuid id, PRIMARY KEY(name, date, id)) ;
+
+INSERT INTO orders(name, items_id, sum, date, id) VALUES ('Alpha', [3c4668bf-b374-4e5a-9fd5-feea4f6799be], 900, '2021-03-15', uuid()) ;
+INSERT INTO orders(name, items_id, sum, date, id) VALUES ('Alpha', [3c4668bf-b374-4e5a-9fd5-feea4f6799be, 6e7ce138-7fc8-4407-8ace-9241e488a34a], 300, '2021-02-15', uuid()) ;
+INSERT INTO orders(name, items_id, sum, date, id) VALUES ('Alpha', [3c4668bf-b374-4e5a-9fd5-feea4f6799be], 100, '2021-04-15', uuid()) ;
+INSERT INTO orders(name, items_id, sum, date, id) VALUES ('Alpha', [3c4668bf-b374-4e5a-9fd5-feea4f6799be], 400, '2021-04-15', uuid()) ;
+INSERT INTO orders(name, items_id, sum, date, id) VALUES ('Beta', [3c4668bf-b374-4e5a-9fd5-feea4f6799be], 200, '2021-05-15', uuid()) ;
+INSERT INTO orders(name, items_id, sum, date, id) VALUES ('Gamma', [3c4668bf-b374-4e5a-9fd5-feea4f6799be], 300, '2021-03-15', uuid()) ;
+
+DESCRIBE orders;
+SELECT  * FROM orders WHERE name='Alpha' ORDER BY date;
+
+CREATE INDEX IF NOT EXISTS items_id_idx ON orders(items_id);
+SELECT  * FROM orders WHERE name='Alpha' AND items_id CONTAINS 6e7ce138-7fc8-4407-8ace-9241e488a34a;
+
+SELECT  COUNT(*) FROM orders WHERE name='Alpha' AND date = '2021-04-15' ;
+
+SELECT name, AVG(sum) FROM orders GROUP BY name;
+
+SELECT name, SUM(sum) FROM orders GROUP BY name;
+SELECT name, MAX(sum) FROM orders GROUP BY name;
+
+UPDATE orders SET items_id = items_id + [3c4668bf-b374-4e5a-9fd5-feea4f6799be], sum = 400 WHERE name = 'Alpha' AND date = '2021-03-15' AND id = 41349790-1af5-4cee-b14b-3408e62f2105;
+
+SELECT WRITETIME(sum), id FROM orders;
+
+INSERT INTO orders(name, items_id, sum, date, id) VALUES ('Zeta', [], 300, '2021-03-15', uuid()) USING TTL 60;
+
+SELECT json * FROM orders LIMIT 1;
+
+INSERT INTO orders JSON '{"name": "Yota", "date": "2021-03-16", "id": "10cf1c8e-3076-4167-a84d-da553ba6d43b", "items_id": ["3c4668bf-b374-4e5a-9fd5-feea4f6799be"], "sum": 1111100}' ;

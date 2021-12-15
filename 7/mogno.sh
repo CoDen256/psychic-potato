@@ -1,7 +1,6 @@
 
 db.createCollection("items", {capped:false})
 db.createCollection("orders", {capped:false})
-db.createCollection("customers", {capped:false})
 
 db.items.insertMany([
     {"category": "Smartwatch", "model":"Mi Band 3", "producer" : "Xiaomi", "price": 20},
@@ -13,8 +12,8 @@ db.items.insertMany([
 ])
 
 
-
 db.orders.insertMany([
+    // "61ba5c214f2a97bda1f918ec"
     {"order_number": 3000, "date": ISODate("2021-04-13"), "total_sum": 700.7, 
         "customer": {"name": "Andrii", "surname": "Rodionov", "phones": [9876543, 1234567], "address": "PTI, Peremohy 37, Kyiv, UA"},
         "payment" : {"card_owner" :"Andrii Rodionov", "cardId": 12345678},
@@ -65,7 +64,7 @@ var reduceSum = function (key, values){
 db.items.mapReduce(
     mapProducerItems,
     reduceSum,
-    {out : "item_per_producer"}
+    {out : "items_per_producer"}
 )
 
 var mapProducerPrices = function() {
@@ -94,28 +93,36 @@ db.orders.mapReduce(
     mapCustomerOrderSum,
     reduceSum,
     {
-        out : "sum_per_customer_2021_04_13",
-        query : {date : {$gte: new Date("2021-04-13")}}
+        out : "sum_per_customer_before",
+        query : {date : {$lt: new Date("2021-05-16")}}
     }
 )
 
 var mapOrdersSum = function(){
-    emit(this._id, this.total_sum)
+    emit(this.order_number, {sum: this.total_sum, count: 1})
 }
 
-var reduceAvg = function (key, countObjVals){
-    reducedVal = { count: 0, qty: 0 };
-    for (var idx = 0; idx < countObjVals.length; idx++) {
-        reducedVal.count += countObjVals[idx].count;
-        reducedVal.qty += countObjVals[idx].qty;
+var reduceAvg = function (key, values){
+    reducedVal = { sum: 0, count: 0 };
+    for (var idx = 0; idx < values.length; idx++) {
+        reducedVal.sum += values[idx].sum;
+        reducedVal.count += values[idx].count;
     }
-    return reducedVal.count/reduceVal.qty;
+    return reducedVal;
+}
+
+var finalizeAvg = function (key, reducedVal){
+    reducedVal.avg = reducedVal.sum/reducedVal.count;
+    return reducedVal;
 }
 
 db.orders.mapReduce(
     mapOrdersSum,
     reduceAvg,
-    {out : "avg_sum_orders"}
+    {
+        out : "avg_sum_orders",
+        finalize: finalizeAvg
+    }
 )
 
 db.orders.mapReduce(
@@ -145,6 +152,15 @@ var mapItemCustomer = function(){
     }
 }
 
-var reduceToList = function(key, values){
-    return values
+var reduceToList = function(key, customers){
+    return customers
 }
+
+db.orders.mapReduce(
+    flatMapItem,
+    reduceToList,
+    {out : "item_by_customers"}
+)
+
+// use item_by_customers
+

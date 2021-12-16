@@ -364,3 +364,41 @@ var emit = function(key, value) {
     print(value.amount);
     print(value.prev_year_amount);
 }
+
+var flatMapItem = function(){
+    for (var idx = 0; idx < this.order_items_id.length; idx++) {
+        var key = this.order_items_id[idx];
+        emit(key, 1);
+     }
+}
+
+var reduceSum = function (key, values){
+    return Array.sum(values);
+};
+db.orders.mapReduce(flatMapItem, reduceSum, {out:'item_ordered_times'});
+
+db.item_ordered_times.find()
+
+var mapTimesBought = function(){emit('top', {item: this._id, times: this.value})}
+
+var reduceSort = function(key, values) {
+    let n=3; 
+    var topN = [];
+    for (var i = 0; i < n; i++){
+        var max = values[0].times
+        var maxObj = values[0]
+        var index = 0
+        for (var j = 0; j < values.length; j++){
+            if (values[j].times >= max){
+                max = values[j].times;
+                maxObj = values[j];
+                index = j;
+            }
+        }
+        topN.push(maxObj)
+        values.splice(index, 1)
+    }
+    return topN;
+}
+db.item_ordered_times.mapReduce(mapTimesBought, reduceSort,{out:'top_n_items'});
+db.top_n_items.find()

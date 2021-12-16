@@ -1,6 +1,13 @@
-docker run --name cas1 -e CASSANDRA_CLUSTER_NAME=Cluster -e CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch -d cassandra
-docker run --name cas2 -e CASSANDRA_SEEDS="$(docker inspect --format='{{ .NetworkSettings.IPAddress }}' cas1)" -e CASSANDRA_CLUSTER_NAME=Cluster -e CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch -d cassandra
-docker run --name cas3 -e CASSANDRA_SEEDS="$(docker inspect --format='{{ .NetworkSettings.IPAddress }}' cas1)" -e CASSANDRA_CLUSTER_NAME=Cluster -e CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch -d cassandra
+docker run --name  cas1 -e CASSANDRA_CLUSTER_NAME=Cluster -e CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch -d cassandra
+docker run --name  cas2 -e CASSANDRA_SEEDS="$(docker inspect --format='{{ .NetworkSettings.IPAddress }}' cas1)" -e CASSANDRA_CLUSTER_NAME=Cluster -e CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch -d cassandra
+docker run --name  cas3 -e CASSANDRA_SEEDS="$(docker inspect --format='{{ .NetworkSettings.IPAddress }}' cas1)" -e CASSANDRA_CLUSTER_NAME=Cluster -e CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch -d cassandra
+
+docker network create cass-net
+
+docker run --name cas1 --network cass-net -d cassandra
+docker run --name cas2 --network cass-net -d cassandra
+docker run --name cas3 --network cass-net -d cassandra
+
 
 
 docker exec -it cas1 nodetool status

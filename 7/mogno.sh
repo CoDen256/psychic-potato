@@ -42,7 +42,7 @@ db.orders.insertMany([
                             {"$ref" : "items", "$id" : ObjectId("61ba1c964f2a97bda1f918d8")},
                             ]
     },
-    {"order_number": 3003, "date": ISODate("2021-05-16"), "total_sum": 100, 
+    {"order_number": 3004, "date": ISODate("2021-05-16"), "total_sum": 100, 
     "customer": {"name": "Erika", "surname": "Burg", "phones": [3015222134], "address": "Strasse, 38a, Kyiv, UA"},
     "payment" : {"card_owner" :"Peter Burg", "cardId": 2846857},
     "order_items_id" : [{"$ref" : "items", "$id" : ObjectId("61ba1c964f2a97bda1f918da")},
@@ -99,7 +99,7 @@ db.orders.mapReduce(
 )
 
 var mapOrdersSum = function(){
-    emit(this.order_number, {sum: this.total_sum, count: 1})
+    emit("count", {sum: this.total_sum, count: 1})
 }
 
 var reduceAvg = function (key, values){
@@ -112,8 +112,7 @@ var reduceAvg = function (key, values){
 }
 
 var finalizeAvg = function (key, reducedVal){
-    reducedVal.avg = reducedVal.sum/reducedVal.count;
-    return reducedVal;
+    return reducedVal.sum/reducedVal.count;
 }
 
 db.orders.mapReduce(
@@ -125,15 +124,22 @@ db.orders.mapReduce(
     }
 )
 
+var mapCustomerOrderSumWithCount = function(){
+    emit(this.customer.name, {sum: this.total_sum, count: 1})
+}
+
 db.orders.mapReduce(
-    mapCustomerOrderSum,
+    mapCustomerOrderSumWithCount,
     reduceAvg,
-    {out : "avg_sum_per_customer"}
+    {
+        out : "avg_sum_orders_per_customer",
+        finalize: finalizeAvg
+    }
 )
 
 var flatMapItem = function(){
     for (var idx = 0; idx < this.order_items_id.length; idx++) {
-        var key = this.order_items_id[idx].model;
+        var key = this.order_items_id[idx]["$id"];
         emit(key, 1);
      }
 }
@@ -147,20 +153,195 @@ db.orders.mapReduce(
 
 var mapItemCustomer = function(){
     for (var idx = 0; idx < this.order_items_id.length; idx++) {
-        var key = this.order_items_id[idx].model;
+        var key = this.order_items_id[idx]["$id"];
         emit(key, this.customer.name);
     }
 }
 
-var reduceToList = function(key, customers){
-    return customers
+var reduceToSet = function(key, customers){
+    return [...new Set(customers)];
 }
 
 db.orders.mapReduce(
-    flatMapItem,
-    reduceToList,
+    mapItemCustomer,
+    reduceToSet,
+    {out : "item_by_customers_unique"}
+)
+db.item_by_customers_unique.find()
+
+
+var mapItemCustomerCount= function(){
+    for (var idx = 0; idx < this.order_items_id.length; idx++) {
+        var key = this.order_items_id[idx]["$id"];
+        emit({item: key, name:this.customer.name}, 1);
+    }
+}
+
+db.orders.mapReduce(
+    mapItemCustomerCount,
+    reduceSum,
     {out : "item_by_customers"}
 )
+db.item_by_customers.find()
 
-// use item_by_customers
+var mapItemByCustomer = function (){
+    emit(this["_id"].item, this["_id"].name)
+}
 
+var reduceToList = function(key, customers){
+    return customers;
+}
+
+db.item_by_customers.mapReduce(
+    mapItemByCustomer,
+    reduceToList,
+    {
+        out : "item_by_customers_gt_1",
+        query : {value : {$gt:1}}
+    }
+)
+db.item_by_customers_gt_1.find()
+
+db.item_by_customers.mapReduce(
+    mapItemByCustomer,
+    reduceToList,
+    {
+        out : "item_by_customers_gt_2",
+        query : {value : {$gt:2}}
+    }
+)
+db.item_by_customers_gt_2.find()
+
+
+// var mapSortingByPopularity = function() {
+//     emit(this.value, this.value)
+// }
+
+// db.item_ordered_times.mapReduce(
+//     mapSortingByPopularity,
+//     reduceToList,
+//     {out : "items_by_popularity"}
+// )
+
+// db.items_by_popularity.find()
+
+db.sum_per_customer_before.find()
+
+db.orders.insertOne({
+    "order_number": 3005, "date": ISODate("2021-05-17"), "total_sum": 9999, 
+        "customer": {"name": "Andrii", "surname": "Rodionov", "phones": [9876543, 1234567], "address": "PTI, Peremohy 37, Kyiv, UA"},
+        "payment" : {"card_owner" :"Andrii Rodionov", "cardId": 12345678},
+        "order_items_id" : [{"$ref" : "items", "$id" : ObjectId("61ba1c964f2a97bda1f918da")}]
+})
+
+db.orders.mapReduce(
+    mapCustomerOrderSum,
+    reduceSum,
+    {
+        out : {reduce: "sum_per_customer_before"},
+        query : {date : {$gt: new Date("2021-05-16")}}
+    }
+)
+
+db.sum_per_customer_before.find()
+
+
+db.orders.insertMany([{
+    "order_number": 3006, "date": ISODate("2020-05-12"), "total_sum": 9999, 
+        "customer": {"name": "Andrii", "surname": "Rodionov", "phones": [9876543, 1234567], "address": "PTI, Peremohy 37, Kyiv, UA"},
+        "payment" : {"card_owner" :"Andrii Rodionov", "cardId": 12345678},
+        "order_items_id" : [{"$ref" : "items", "$id" : ObjectId("61ba1c964f2a97bda1f918da")}]
+    },
+    {"order_number": 3007, "date": ISODate("2020-04-12"), "total_sum": 9999, 
+        "customer": {"name": "Andrii", "surname": "Rodionov", "phones": [9876543, 1234567], "address": "PTI, Peremohy 37, Kyiv, UA"},
+        "payment" : {"card_owner" :"Andrii Rodionov", "cardId": 12345678},
+        "order_items_id" : [{"$ref" : "items", "$id" : ObjectId("61ba1c964f2a97bda1f918da")}]
+    },
+    {"order_number": 3007, "date": ISODate("2021-04-12"), "total_sum": 9999, 
+        "customer": {"name": "Andrii", "surname": "Rodionov", "phones": [9876543, 1234567], "address": "PTI, Peremohy 37, Kyiv, UA"},
+        "payment" : {"card_owner" :"Andrii Rodionov", "cardId": 12345678},
+        "order_items_id" : [{"$ref" : "items", "$id" : ObjectId("61ba1c964f2a97bda1f918da")}]
+    },
+
+
+    {"order_number": 3008, "date": ISODate("2020-05-16"), "total_sum": 100, 
+    "customer": {"name": "Erika", "surname": "Burg", "phones": [3015222134], "address": "Strasse, 38a, Kyiv, UA"},
+    "payment" : {"card_owner" :"Peter Burg", "cardId": 2846857},
+    "order_items_id" : [{"$ref" : "items", "$id" : ObjectId("61ba1c964f2a97bda1f918da")},
+                        ]
+    },
+    {"order_number": 3009, "date": ISODate("2021-04-01"), "total_sum": 100, 
+    "customer": {"name": "Erika", "surname": "Burg", "phones": [3015222134], "address": "Strasse, 38a, Kyiv, UA"},
+    "payment" : {"card_owner" :"Peter Burg", "cardId": 2846857},
+    "order_items_id" : [{"$ref" : "items", "$id" : ObjectId("61ba1c964f2a97bda1f918da")},
+                        ]
+                    },
+                    {"order_number": 3009, "date": ISODate("2021-04-16"), "total_sum": 100, 
+                    "customer": {"name": "Erika", "surname": "Burg", "phones": [3015222134], "address": "Strasse, 38a, Kyiv, UA"},
+                    "payment" : {"card_owner" :"Peter Burg", "cardId": 2846857},
+                    "order_items_id" : [{"$ref" : "items", "$id" : ObjectId("61ba1c964f2a97bda1f918da")},
+                            
+                                        ]
+                                    }                
+])
+
+
+
+var mapFullInfo = function(){
+    emit(
+        {name: this.customer.name, month:this.date.getMonth() + 1}, 
+    {
+        name : this.customer.name,
+        year: this.date.getFullYear(),
+        month: this.date.getMonth() + 1,
+        amount: this.date.getFullYear() == 2021 ? this.total_sum : 0,
+        prev_year_amount: this.date.getFullYear() == 2020 ? this.total_sum : 0
+    })
+}
+
+var reduceFullInfo = function(key, values){
+    var reducedObj = {
+        name : key.name,
+        year: 2021,
+        month: key.month,
+        amount: 0,
+        prev_year_amount: 0
+
+    }
+    for (var idx = 0; idx < values.length; idx++) {
+        var obj = values[idx];
+        if (parseInt(obj.year) == 2021){
+            reducedObj.amount += obj.amount;
+        }
+        if (parseInt(obj.year) == 2020){
+            reducedObj.prev_year_amount += obj.prev_year_amount;
+        }
+    }
+    return reducedObj;
+}
+
+var finalizeFullInfo = function (key, reducedObj){
+    reducedObj.diff = reducedObj.amount - reducedObj.prev_year_amount;
+    return reducedObj;
+}
+
+db.orders.mapReduce(
+    mapFullInfo,
+    reduceFullInfo,
+    {
+        out : "full_info",
+        finalize: finalizeFullInfo
+    }
+)
+db.full_info.find()
+
+var emit = function(key, value) {
+    print("emit");
+    print(key.name);
+    print(key.mon);
+    print(value.name);
+    print(value.year);
+    print(value.mon);
+    print(value.amount);
+    print(value.prev_year_amount);
+}

@@ -13,7 +13,6 @@ db.items.insertMany([
 
 
 db.orders.insertMany([
-    // "61ba5c214f2a97bda1f918ec"
     {"order_number": 3000, "date": ISODate("2021-04-13"), "total_sum": 700.7, 
         "customer": {"name": "Andrii", "surname": "Rodionov", "phones": [9876543, 1234567], "address": "PTI, Peremohy 37, Kyiv, UA"},
         "payment" : {"card_owner" :"Andrii Rodionov", "cardId": 12345678},
@@ -212,6 +211,25 @@ db.item_by_customers.mapReduce(
 )
 db.item_by_customers_gt_2.find()
 
+db.item_ordered_times.find()
+
+var identity = function (){
+    emit("", {key: this["_id"], value: this.value})
+}
+var reduce = function(key, values){
+    return values.sort((a,b) => - a.value + b.value)
+}
+
+db.item_ordered_times.mapReduce(
+    identity,
+    reduce,
+    {
+        out: "sorted",
+        finalize: function (key, value) {return value.splice(0, 4)}
+}
+
+)
+db.sorted.find()
 
 // var mapSortingByPopularity = function() {
 //     emit(this.value, this.value)
@@ -247,22 +265,21 @@ db.sum_per_customer_before.find()
 
 
 db.orders.insertMany([{
-    "order_number": 3006, "date": ISODate("2020-05-12"), "total_sum": 9999, 
+    "order_number": 3005, "date": ISODate("2020-05-12"), "total_sum": 6000, 
         "customer": {"name": "Andrii", "surname": "Rodionov", "phones": [9876543, 1234567], "address": "PTI, Peremohy 37, Kyiv, UA"},
         "payment" : {"card_owner" :"Andrii Rodionov", "cardId": 12345678},
         "order_items_id" : [{"$ref" : "items", "$id" : ObjectId("61ba1c964f2a97bda1f918da")}]
     },
-    {"order_number": 3007, "date": ISODate("2020-04-12"), "total_sum": 9999, 
+    {"order_number": 3006, "date": ISODate("2021-05-12"), "total_sum": 3000, 
+    "customer": {"name": "Andrii", "surname": "Rodionov", "phones": [9876543, 1234567], "address": "PTI, Peremohy 37, Kyiv, UA"},
+    "payment" : {"card_owner" :"Andrii Rodionov", "cardId": 12345678},
+    "order_items_id" : [{"$ref" : "items", "$id" : ObjectId("61ba1c964f2a97bda1f918da")}]
+},
+    {"order_number": 3007, "date": ISODate("2020-04-12"), "total_sum": 7000, 
         "customer": {"name": "Andrii", "surname": "Rodionov", "phones": [9876543, 1234567], "address": "PTI, Peremohy 37, Kyiv, UA"},
         "payment" : {"card_owner" :"Andrii Rodionov", "cardId": 12345678},
         "order_items_id" : [{"$ref" : "items", "$id" : ObjectId("61ba1c964f2a97bda1f918da")}]
     },
-    {"order_number": 3007, "date": ISODate("2021-04-12"), "total_sum": 9999, 
-        "customer": {"name": "Andrii", "surname": "Rodionov", "phones": [9876543, 1234567], "address": "PTI, Peremohy 37, Kyiv, UA"},
-        "payment" : {"card_owner" :"Andrii Rodionov", "cardId": 12345678},
-        "order_items_id" : [{"$ref" : "items", "$id" : ObjectId("61ba1c964f2a97bda1f918da")}]
-    },
-
 
     {"order_number": 3008, "date": ISODate("2020-05-16"), "total_sum": 100, 
     "customer": {"name": "Erika", "surname": "Burg", "phones": [3015222134], "address": "Strasse, 38a, Kyiv, UA"},
@@ -270,13 +287,13 @@ db.orders.insertMany([{
     "order_items_id" : [{"$ref" : "items", "$id" : ObjectId("61ba1c964f2a97bda1f918da")},
                         ]
     },
-    {"order_number": 3009, "date": ISODate("2021-04-01"), "total_sum": 100, 
+    {"order_number": 3009, "date": ISODate("2021-04-01"), "total_sum": 120, 
     "customer": {"name": "Erika", "surname": "Burg", "phones": [3015222134], "address": "Strasse, 38a, Kyiv, UA"},
     "payment" : {"card_owner" :"Peter Burg", "cardId": 2846857},
     "order_items_id" : [{"$ref" : "items", "$id" : ObjectId("61ba1c964f2a97bda1f918da")},
                         ]
                     },
-                    {"order_number": 3009, "date": ISODate("2021-04-16"), "total_sum": 100, 
+                    {"order_number": 3009, "date": ISODate("2021-04-16"), "total_sum": 130, 
                     "customer": {"name": "Erika", "surname": "Burg", "phones": [3015222134], "address": "Strasse, 38a, Kyiv, UA"},
                     "payment" : {"card_owner" :"Peter Burg", "cardId": 2846857},
                     "order_items_id" : [{"$ref" : "items", "$id" : ObjectId("61ba1c964f2a97bda1f918da")},
@@ -288,21 +305,23 @@ db.orders.insertMany([{
 
 
 var mapFullInfo = function(){
+    var curr_year = new Date().getFullYear();
     emit(
         {name: this.customer.name, month:this.date.getMonth() + 1}, 
     {
         name : this.customer.name,
         year: this.date.getFullYear(),
         month: this.date.getMonth() + 1,
-        amount: this.date.getFullYear() == 2021 ? this.total_sum : 0,
-        prev_year_amount: this.date.getFullYear() == 2020 ? this.total_sum : 0
+        amount: this.date.getFullYear() ==  curr_year ? this.total_sum : 0,
+        prev_year_amount: this.date.getFullYear() == curr_year - 1 ? this.total_sum : 0
     })
 }
 
 var reduceFullInfo = function(key, values){
+    var curr_year = new Date().getFullYear();
     var reducedObj = {
         name : key.name,
-        year: 2021,
+        year: curr_year,
         month: key.month,
         amount: 0,
         prev_year_amount: 0
@@ -310,10 +329,10 @@ var reduceFullInfo = function(key, values){
     }
     for (var idx = 0; idx < values.length; idx++) {
         var obj = values[idx];
-        if (parseInt(obj.year) == 2021){
+        if (parseInt(obj.year) == curr_year){
             reducedObj.amount += obj.amount;
         }
-        if (parseInt(obj.year) == 2020){
+        if (parseInt(obj.year) == curr_year-1){
             reducedObj.prev_year_amount += obj.prev_year_amount;
         }
     }
